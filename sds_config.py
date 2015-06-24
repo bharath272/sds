@@ -1,0 +1,7 @@
+import numpy as np
+PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
+TARGET_SIZE = 600
+MAX_SIZE = 1000
+FEAT_SCALE = 16
+MASK_SIZE = 50
+
