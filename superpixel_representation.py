@@ -40,10 +40,10 @@ def get_region_boxes(sp, reg2sp):
   sp1=sp.reshape(-1)-1
   xv = xv.reshape(-1)
   yv = yv.reshape(-1)
-  spxmin = accum.my_accumarray(xv, sp1, maxsp, 'min')
-  spymin = accum.my_accumarray(yv, sp1, maxsp, 'min')
-  spxmax = accum.my_accumarray(xv, sp1, maxsp, 'max')
-  spymax = accum.my_accumarray(yv, sp1, maxsp, 'max')
+  spxmin = accum.my_accumarray(sp1,xv, maxsp, 'min')
+  spymin = accum.my_accumarray(sp1,yv, maxsp, 'min')
+  spxmax = accum.my_accumarray(sp1,xv, maxsp, 'max')
+  spymax = accum.my_accumarray(sp1,yv, maxsp, 'max')
   
   Z = reg2sp.astype(float, copy=True)
   Z[reg2sp==0] = np.inf
@@ -57,4 +57,14 @@ def get_region_boxes(sp, reg2sp):
 
   boxes = np.hstack((xmin.reshape(-1,1), ymin.reshape(-1,1), xmax.reshape(-1,1), ymax.reshape(-1,1)))
   return boxes 
-   
+  
+
+def project_to_sp(sp, mask):
+  sp1=sp.reshape(-1)-1
+  mask1 = mask.reshape(-1)
+  maxsp = np.max(sp)
+  reg2sp = accum.my_accumarray(sp1,mask1,maxsp)
+  areas = accum.my_accumarray(sp1,1,maxsp)
+  reg2sp = reg2sp/areas
+  projected_mask = reg2sp[sp-1]
+  return reg2sp, projected_mask

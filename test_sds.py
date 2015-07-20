@@ -25,11 +25,11 @@ class SDSNet:
     conv5 = out['conv5_3']
     return conv5
   
-  def get_scores(self, conv5, spp_boxes, masks):
+  def get_scores(self, conv5, spp_boxes_in, masks_in):
     #get the sppboxes reshaped
-    spp_boxes = np.reshape(spp_boxes,(spp_boxes.shape[0], spp_boxes.shape[1], 1, 1))
+    spp_boxes = np.reshape(spp_boxes_in,(spp_boxes_in.shape[0], spp_boxes_in.shape[1], 1, 1))
     #get the masks reshaped
-    masks = np.reshape(masks,(masks.shape[0],1,masks.shape[1], masks.shape[2]))
+    masks = np.reshape(masks_in,(masks_in.shape[0],1,masks_in.shape[1], masks_in.shape[2]))
     
     #batch the boxes, to avoid running out of memory
     num_boxes = spp_boxes.shape[0]
@@ -56,7 +56,37 @@ class SDSNet:
       scores[start:stop,:] = scores_batch
     return scores 
   
-
+  def get_regressed_boxes(self, conv5, spp_boxes_in, masks_in, cids_in):
+    #get the sppboxes reshaped
+    spp_boxes = np.reshape(spp_boxes_in,(spp_boxes_in.shape[0], spp_boxes_in.shape[1], 1, 1))
+    #get the masks reshaped
+    masks = np.reshape(masks_in,(masks_in.shape[0],1,masks_in.shape[1], masks_in.shape[2]))
+    #get the cids reshaped   
+    cids = np.reshape(cids_in,(cids_in.size, 1, 1, 1)) 	
+    #batch the boxes, to avoid running out of memory
+    num_boxes = spp_boxes.shape[0]
+    num_batches = int(num_boxes)/int(cfg.BATCH_SIZE_TEST)
+    if num_batches*cfg.BATCH_SIZE_TEST<num_boxes:
+      num_batches+= 1
+    scores = np.zeros(num_boxes, 20)
+    for i in range(num_batches):
+      start = i*cfg.BATCH_SIZE_TEST
+      stop = min(start+cfg.BATCH_SIZE_TEST-1,num_boxes-1)
+      spp_boxes_batch = spp_boxes[start:stop,:,:,:]
+      masks_batch = masks[start:stop,:,:,:]
+      #reshape the net
+      self.score_net.blobs['conv5_3'].reshape(*(conv5.shape))
+      self.score_net.blobs['sppboxes'].reshape(*(spp_boxes_batch.shape))
+      self.score_net.blobs['masks'].reshape(*(masks_batch.shape))
+      #forward
+      out = self.score_net.forward(conv5_3=conv5.astype(np.float32, copy=False),
+                                 sppboxes=spp_boxes_batch.astype(np.float32, copy=False),
+                                 masks=masks_batch.astype(np.float32, copy=False))
+      scores_batch = out['cls_prob']
+      #remove background
+      scores_batch = scores_batch[:,1:]
+      scores[start:stop,:] = scores_batch
+    return scores
 
  
 def get_resized_image(image):
@@ -155,3 +185,15 @@ def do_region_nms(sp, reg2sp, scores, ov_thresh):
     print str(len(chosen))
   return chosen
 
+def test_full_sds(net, img, sp, reg2sp, boxes, nms_ov_thresh):
+  #first resize the image
+  im_new, final_scale_factors = get_resized_image(img)
+  # and get conv features
+  conv5 = net.get_conv5(im_new)
+  #next get the boxes for spp
+  spp_boxes = get_boxes_for_spp(boxes, final_scale_factors)
+  # and the masks
+  masks = get_clipped_resized_masks(boxes, sp, reg2sp)
+  #next score the network
+  scores = net.get_scores(conv5, spp_boxes, masks)
+  #and regress boxes 
