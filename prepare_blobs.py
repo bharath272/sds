@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import sds_config as cfg
+
 def get_resized_image(image):
   im = image.astype(np.float32, copy=True)
   im -= cfg.PIXEL_MEANS
@@ -33,7 +34,7 @@ def get_normalized_boxes(boxes, categids, im_shape):
   #the normalized boxes
   normalized_boxes = np.divide(boxes+np.array([-0.5, -0.5, 0.5, 0.5], dtype=np.float32), 
                                 im_shape_1[[1,0,1,0]]-1)
-  normalized_boxes = np.hstack((np.zeros((num_boxes,1),normalized_boxes.dtype), categids.reshape((1,-1)),normalized_boxes)) 
+  normalized_boxes = np.hstack((np.zeros((num_boxes,1),normalized_boxes.dtype), categids.reshape((-1,1)),normalized_boxes)) 
   return normalized_boxes
 
 def get_clipped_resized_masks(boxes, input_masks):

@@ -15,7 +15,11 @@ def my_accumarray(indices, vals, size, func='plus', fill_value=0):
   if not func in function_name_dict:
     raise KeyError('Function name not defined for accumarray')
   if np.isscalar(vals):
-    vals = np.repeat(vals, indices.size)    
+    if isinstance(indices, tuple):
+     shape = indices[0].shape
+    else:
+     shape = indices.shape    
+    vals = np.tile(vals, shape)    
   #get the function and the default value
   (function, value) = function_name_dict[func]    
   #create an array to hold things

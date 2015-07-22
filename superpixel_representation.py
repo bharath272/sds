@@ -64,7 +64,7 @@ def project_to_sp(sp, mask):
   mask1 = mask.reshape(-1)
   maxsp = np.max(sp)
   reg2sp = accum.my_accumarray(sp1,mask1,maxsp)
-  areas = accum.my_accumarray(sp1,1,maxsp)
+  areas = accum.my_accumarray(sp1,1.,maxsp)
   reg2sp = reg2sp/areas
-  projected_mask = reg2sp[sp-1]
-  return reg2sp, projected_mask
+ # projected_mask = reg2sp[sp-1]
+  return reg2sp
