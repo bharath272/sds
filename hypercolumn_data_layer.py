@@ -7,11 +7,14 @@ from prepare_blobs import get_blobs
 import sbd
 import os
 
+def get_box_overlap(box1, box2)
+
+
 class HypercolumnDataLayer(caffe.Layer):
   def _parse_args(self, str_arg):
     parser = argparse.ArgumentParser(description='Hypercolumn Data Layer Parameters')
     parser.add_argument('--proposalfile', default='train_mcg_boxes.pkl', type=str)
-    parser.add_argument('--gtfile', default=os.path.join(sbd.sbddir, 'gttrain.pkl',''), type=str)
+    parser.add_argument('--gtfile', default=os.path.join(sbd.sbddir, 'gttrain.pkl'), type=str)
     parser.add_argument('--trainset', default='train.txt', type=str)
     args = parser.parse_args(str_arg.split())
     print('Using config:')
@@ -23,14 +26,17 @@ class HypercolumnDataLayer(caffe.Layer):
 
   def setup(self, bottom, top):
     self._params = self._parse_args(self.param_str_)
-    self.boxes = pickle.load(self._params.proposalfile)
-    self.gt = pickle.load(self._params.gtfile)
+    with open(self._params.proposalfile,'r') as f:
+      o = pickle.load(f)
+    self.boxes=o['boxes']
+    with open(self._params.gtfile, 'r') as f:
+      self.gt = pickle.load(f)
     with open(self._params.trainset) as f:
       names = f.readlines()
     self.names = [x[:-1] for x in names]
     
     #how many categories are there?
-    maxcateg = np.max(np.ndarray([np.max(x['classes']) for x in self.gt]))
+    maxcateg = np.max(np.array([np.max(x) for x in self.gt['classes']]))
     self.numclasses=maxcateg+1
     
     #initialize
@@ -40,14 +46,14 @@ class HypercolumnDataLayer(caffe.Layer):
 
     #compute all overlaps and pick boxes that have greater than threshold overlap
     for i in range(len(self.names)):
-      ov = get_box_overlap(self.boxes[i], self.gt[i]['boxes'])
+      ov = get_box_overlap(self.boxes[i], self.gt['boxes'][i])
       
       #this maintains the last index for each image for each category
       for classlabel in range(self.numclasses):
         data_percateg[classlabel]['im_end_index'].append(data_percateg[classlabel]['im_end_index'][-1])
       
       #for every gt
-      for j in range(len(self.gt[i]['classes'])):
+      for j in range(len(self.gt['classes'][i])):
         idx = ov[:,j]>=self._params.ovthresh
         if not np.any(idx):
           continue

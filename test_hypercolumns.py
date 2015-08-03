@@ -1,6 +1,7 @@
 import numpy as np
 import sys
-sys.path.insert(0, '/home/eecs/bharath2/final_sds/caffe/python')
+#sys.path.insert(0, '/home/eecs/bharath2/final_sds/caffe/python')
+import caffe_paths
 import caffe
 import sds_config as cfg
 import cv2
