@@ -1,0 +1,1 @@
+PYTHONUNBUFFERED="True" PYTHONPATH=:caffe/python/ GLOG_logtostderr=1 caffe/build/tools/caffe.bin train   -gpu 2   -solver model_defs/solver.prototxt -weights /work5/bharath2/vgg16_fast_rcnn_MCGdedup5K_voc_2012_train_iter_40000.caffemodel 
