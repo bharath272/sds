@@ -120,7 +120,7 @@ def paste_output_sp(output, boxes, im_shape, sp, target_output_size = [50, 50]):
   pasted_output = pasted_output/counts.reshape((1,1,-1))
   return pasted_output
  
-def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpath=None, do_eval = True, eval_thresh = 0.5):
+def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpath=None, do_eval = True, eval_thresh = [0.5, 0.7]):
   numcategs=dets['boxes'].size
 
   if do_eval:
@@ -182,13 +182,15 @@ def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpa
       print 'Doing : {:d}, get boxes:{:.2f} s, get pred:{:.2f} s, get sp:{:.2f} s, get ov:{:.2f} s'.format(i, times['boxes']/total,
                         times['pred']/total, times['sp']/total, times['ov']/total)
 
-  ap = []
-  prec = []
-  rec = []
+  ap = [[] for _ in eval_thresh]
+  prec = [[] for _ in eval_thresh]
+  rec = [[] for _ in eval_thresh]
   for i in range(numcategs):
     print 'Evaluating :{:d}'.format(i)
-    ap_, prec_, rec_ = evaluation.generalized_det_eval_simple(dets['scores'][i].tolist()[0:len(names)], all_ov[i], gt, i, eval_thresh)
-    ap.append(ap_)
-    prec.append(prec_)
-    rec.append(rec_)
+
+    for t,thr in enumerate(eval_thresh):
+      ap_, prec_, rec_ = evaluation.generalized_det_eval_simple(dets['scores'][i].tolist()[0:len(names)], all_ov[i], gt, i, thr)
+      ap[t].append(ap_)
+      prec[t].append(prec_)
+      rec[t].append(rec_)
   return ap, prec, rec, all_ov, gt
