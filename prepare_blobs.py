@@ -4,7 +4,6 @@ import sds_config as cfg
 
 def get_resized_image(image):
   im = image.astype(np.float32, copy=True)
-  im -= cfg.PIXEL_MEANS
   im_shape = im.shape
   im_size_min = np.min(im_shape[0:2])
   im_size_max = np.max(im_shape[0:2])
@@ -15,6 +14,7 @@ def get_resized_image(image):
     target_scale = float(cfg.MAX_SIZE)/float(im_size_max)
   im_new = cv2.resize(im, None, None, fx=target_scale, fy=target_scale, 
                          interpolation=cv2.INTER_LINEAR)
+  im_new -= cfg.PIXEL_MEANS
   new_im_shape = im_new.shape
   final_scale_factors = np.divide(np.array(new_im_shape, dtype=np.float32), 
                                np.array(im_shape, dtype=np.float32))

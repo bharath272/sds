@@ -9,10 +9,10 @@ sbddir = '/work5/bharath2/SBD_check/benchmark_RELEASE/dataset'
 def load_gt(name):
   filename = os.path.join(sbddir, 'cls', name+'.mat')
   output = loadmat(filename)
-  categories = output['GTcls'][0,0]['CategoriesPresent']
   filename = os.path.join(sbddir, 'inst', name+'.mat')
   output = loadmat(filename)
   inst = output['GTinst'][0,0]['Segmentation']
+  categories = output['GTinst'][0,0]['Categories']
   return inst, categories
 
 

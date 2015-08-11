@@ -12,13 +12,13 @@ import superpixel_representation as sprep
 import evaluation
 import math
 import my_accumarray as accum
+from scipy.io import savemat, loadmat
 def get_hypercolumn_prediction(net, img, boxes, categids):
-
+  boxes = boxes.copy()
   #clip boxes to image
-  boxes = clip_boxes(boxes, img.shape) 
+  boxes = clip_boxes(boxes-1, img.shape) 
 
   im_new, spp_boxes, normalized_boxes, categids = get_blobs(img, boxes, categids)
- 
   #reshape the network
   net.blobs['image'].reshape(*(im_new.shape))
   net.blobs['normalizedboxes'].reshape(*(normalized_boxes.shape))
@@ -84,8 +84,8 @@ def paste_output_sp(output, boxes, im_shape, sp, target_output_size = [50, 50]):
   new_boxes = clip_boxes(new_boxes, im_shape)
   xmin = new_boxes[:,0]
   ymin = new_boxes[:,1]
-  w = new_boxes[:,2]-xmin+1
-  h = new_boxes[:,3]-ymin+1
+  w = new_boxes[:,2]-xmin+1.
+  h = new_boxes[:,3]-ymin+1.
   for item in range(output.shape[0]):
     xmin_ = xmin[item]
     ymin_ = ymin[item]
@@ -100,31 +100,46 @@ def paste_output_sp(output, boxes, im_shape, sp, target_output_size = [50, 50]):
     X_all = np.maximum(0, np.minimum(target_output_size[1]-1, np.floor(X_all)))
 
 
-    
+    x_all = x_all.astype(np.intp)
+    y_all = y_all.astype(np.intp)
+    X_all = X_all.astype(np.intp)
+    Y_all = Y_all.astype(np.intp)
+
+    spind = sp[np.ix_(y_all,x_all)]-1
+       
 
     for channel in range(output.shape[1]):
       pasted_output_this = pasted_output[item,channel]
       output_this = output[item, channel]
-      for i in range(len(Y_all)):
-        sp_this_row = sp[y_all[i]]
-        output_this_row = output_this[Y_all[i]]
-        for j in range(len(X_all)):
-          #X = (x-xmin_)*target_output_size[1]/w_
-          #X = math.floor(X)
-          #X = max(0, min(target_output_size[1]-1,X))
-          pasted_output_this[sp_this_row[x_all[j]]-1] = output_this_row[X_all[j]]
+      vals = output_this[np.ix_(Y_all,X_all)]
+      np.add.at(pasted_output_this, spind, vals)
 
+
+  #finally divide by sum
+  counts = accum.my_accumarray(sp.reshape(-1)-1,1,np.max(sp))
+  pasted_output = pasted_output/counts.reshape((1,1,-1))
   return pasted_output
  
-def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpath=None):
+def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpath=None, do_eval = True, eval_thresh = 0.5):
   numcategs=dets['boxes'].size
-  all_ov=[]
-  for j in range(numcategs):
-    all_ov.append([])
 
+  if do_eval:
+    #we will accumulate the overlaps and the classes of the gt
+    all_ov=[]
+    gt = []
+    for j in range(numcategs):
+      all_ov.append([])
+
+
+  #a dictionary of times
+  times = {}
+  times['boxes']=0.
+  times['pred']=0.
+  times['sp']=0.
+  times['ov']=0.
+  times['total']=0.
   for i in range(len(names)):
     t1=time.time()
-    print 'Doing'+str(i)
     img = cv2.imread(imgpath.format(names[i]))
     #get all boxes for this image
     boxes_img = np.zeros((0,4))
@@ -132,35 +147,48 @@ def get_all_outputs(net,names, dets, imgpath, sppath, regsppath,thresh=0.4,outpa
     for j in range(numcategs):
       boxes_img = np.vstack((boxes_img, dets['boxes'][j][i]))
       cids_img = np.vstack((cids_img, j*np.ones((dets['boxes'][j][i].shape[0],1))))
-    #get the predictions
-    print boxes_img.shape
     t2=time.time()
+    times['boxes']=times['boxes']+t2-t1
+
+
+    #get the predictions
     output = get_hypercolumn_prediction(net, img, boxes_img.astype(np.float32), cids_img)
-    t2pt5 = time.time()
-    #pasted_output = paste_output(output, boxes_img.astype(np.float32), img.shape)
     t3=time.time()
+    times['pred']=times['pred']+t3-t2
     #project to sp
     (sp, reg2sp) = sprep.read_sprep(sppath.format(names[i]), regsppath.format(names[i]))
-    #newreg2sp_all = np.zeros((np.max(sp),cids_img.size))
-    #for j in range(cids_img.size):
-    #  newreg2sp = sprep.project_to_sp(sp, pasted_output[j,0])
-    #  newreg2sp_all[:,j] = newreg2sp
-    counts_all = paste_output_sp(output, boxes_img.astype(np.float32), img.shape, sp)
-    counts_all =np.squeeze(counts_all)
-    counts = accum.my_accumarray(sp.reshape(-1)-1,1,np.max(sp))
-    newreg2sp_all = counts_all/counts
+    newreg2sp_all = paste_output_sp(output, boxes_img.astype(np.float32)-1., sp.shape, sp)
+    newreg2sp_all = np.squeeze(newreg2sp_all)
     newreg2sp_all = newreg2sp_all>=thresh
     newreg2sp_all = newreg2sp_all.T
     t4=time.time()
-    #evaluate
-    inst, categories = sbd.load_gt(names[i])
-    ov = evaluation.compute_overlap_sprep(sp, newreg2sp_all, inst)
-    #separate according to categories
-    for j in range(numcategs):
-      all_ov[j].append(ov[:,cids_img.reshape(-1)==j])
-    t5=time.time()
-    print 'Get boxes:{:f}, get pred:{:f},{:f}, get sp:{:f}, get ov:{:f}'.format(t2-t1,t2pt5-t2, t3-t2pt5,t4-t3,t5-t4)
+    times['sp'] = times['sp']+t4-t3
     #save if needed
     if outpath is not None:
-      cv2.imwrite(outpath.format(names[i]), newreg2sp_all)
-  return all_ov 
+      savemat(outpath.format(names[i]), {'output':output})
+    #evaluate
+    if do_eval:
+      inst, categories = sbd.load_gt(names[i])
+      ov = evaluation.compute_overlap_sprep(sp, newreg2sp_all, inst)
+      #separate according to categories
+      for j in range(numcategs):
+        all_ov[j].append(ov[:,cids_img.reshape(-1)==j])
+      #append categories
+      gt.append(np.squeeze(categories-1))
+    t5=time.time()
+    times['ov'] = times['ov']+t5-t4
+    if i % 100 == 0:
+      total = float(i+1)
+      print 'Doing : {:d}, get boxes:{:.2f} s, get pred:{:.2f} s, get sp:{:.2f} s, get ov:{:.2f} s'.format(i, times['boxes']/total,
+                        times['pred']/total, times['sp']/total, times['ov']/total)
+
+  ap = []
+  prec = []
+  rec = []
+  for i in range(numcategs):
+    print 'Evaluating :{:d}'.format(i)
+    ap_, prec_, rec_ = evaluation.generalized_det_eval_simple(dets['scores'][i].tolist()[0:len(names)], all_ov[i], gt, i, eval_thresh)
+    ap.append(ap_)
+    prec.append(prec_)
+    rec.append(rec_)
+  return ap, prec, rec, all_ov, gt
