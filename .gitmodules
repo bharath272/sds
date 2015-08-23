@@ -1,0 +1,3 @@
+[submodule "caffe-sds"]
+	path = caffe-sds
+	url = https://github.com/bharath272/caffe-sds
