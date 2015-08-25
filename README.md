@@ -22,9 +22,13 @@ Finally, to be able to do fast segmentation, we run the classifiers convolutiona
 The main work is performed by a network implemented in [caffe](http://caffe.berkeleyvision.org/). I have added a few layers to caffe, and these modifications are available in the caffe-sds repository that comes bundled with this one.
 
 The network definition is in `model_defs/hypercolumn_test.prototxt`. The network takes in four inputs:
+
 1. The first input is the image itself. In principle the network can take in multiple images, though the rest of the code ignores this functionality and handles one image at the time, partly because of memory constraints. 
+
 2. The second input is the bounding boxes you want to segment, written down as `[image_id categ_id xmin ymin xmax ymax]`. xmin, ymin, xmax and ymax are in normalized coordinates (i.e, the full image corresponds to `[0 0 1 1]`. `image_id` is the image number this box belongs to (since the code typically just passes in one image at a time, this is always 0) and `categ_id` is the category id of the bounding box.
+
 3. The third input is the bounding boxes in the coordinates of the conv5 feature map, required for the spatial pyramid pooling. For VGG and Alexnet, this simply means the box coordinates divided by 16. The format of this blob is `[image_id xmin ymin xmax ymax]`.
+
 4. The final input is again a list of category ids.
 There is a lot of redundancy in these inputs, and currently `prepare_blobs.py` contains code to take in the image and detections as input and produce these blobs. This might be simplified in the future.
 
