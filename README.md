@@ -1,10 +1,9 @@
 # SDS using hypercolumns
-Code for SDS
 
-This repository implements the ideas from our [CVPR 2015 paper](http://www.cs.berkeley.edu/~bharath2/pubs/pdfs/BharathCVPR2015.pdf) and [my thesis](http://www.eecs.berkeley.edu/Pubs/TechRpts/2015/EECS-2015-193.html). In particular, it uses the hypercolumn representation to segment detections. It uses ideas from [SPP](http://arxiv.org/abs/1406.4729) and [Fast R-CNN](http://arxiv.org/abs/1504.08083) to speed things up. The full details are in Chapter 3 of my thesis (look at Figure 3.7 for an overview).
+This repository implements the ideas from our [CVPR 2015 paper][4] and [my thesis][3]. In particular, it uses the hypercolumn representation to segment detections. It uses ideas from [SPP][5] and [Fast RCNN][2] to speed things up. The full details are in Chapter 3 of my thesis (look at Figure 3.7 for an overview).
 
 ##Preliminaries
-The task we are interested in is [Simultaneous Detection and Segmentation][1], where we want to *detect* every instance of a category in an image and *segment* it out. We approach this task by first running an off-the-shelf object detector such as [Fast R-CNN][2] and then segmenting out the object in each bounding box output by the detector. 
+The task we are interested in is [Simultaneous Detection and Segmentation][1], where we want to *detect* every instance of a category in an image and *segment* it out. We approach this task by first running an off-the-shelf object detector such as [Fast RCNN][2] and then segmenting out the object in each bounding box output by the detector. 
 
 Included in the repository is an ipython notebook called *demo*. This demo should give you an idea of what the code does. The first three cells download the demo data and the trained model, and segment out a horse detection. `test_hypercolumns.get_hypercolumn_prediction` outputs the soft heatmap while `test_hypercolumns.paste_output_sp` projects the heatmap to superpixels.
 
@@ -40,4 +39,8 @@ Training relies on a python data layer, `hypercolumn_data_layer.py`. `run_comman
 The training prototxt is `model_defs/hypercolumn_train_pydata.prototxt` and is very similar to the testing model definition. The only difference is that the last layer is the `LocallyConnectedWithLoss` layer, which also takes in the target figure-ground masks and produces a loss (which is the standard sum-of-log-losses over all the pixels). It also takes in a weight for each box: this helped in preliminary experiments. In the current set up, small boxes are weighed less because they are noisier.
 
 This README will continue to be updated.
-
+[1]:http://www.eecs.berkeley.edu/Research/Projects/CS/vision/shape/sds
+[2]:http://arxiv.org/abs/1504.08083
+[3]:http://www.eecs.berkeley.edu/Pubs/TechRpts/2015/EECS-2015-193.html
+[4]:http://www.cs.berkeley.edu/~bharath2/pubs/pdfs/BharathCVPR2015.pdf
+[5]:http://arxiv.org/abs/1406.4729
