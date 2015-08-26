@@ -7,7 +7,11 @@ The task we are interested in is [Simultaneous Detection and Segmentation][1], w
 
 Included in the repository is an ipython notebook called *demo*. This demo should give you an idea of what the code does. The first three cells download the demo data and the trained model, and segment out a horse detection. `test_hypercolumns.get_hypercolumn_prediction` outputs the soft heatmap while `test_hypercolumns.paste_output_sp` projects the heatmap to superpixels.
 
+Running the demo also automatically downloads the pretrained model. You can also get the model [here](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/shape/hypercolumn/trained_model.caffemodel).
+
 The last cell of the demo also runs the evaluation on 100 images. This requires you to have VOC2012 downloaded, and a link to that directory available in the `cache` directory.
+
+
 
 ##Overview of approach
 If you want to delve into details of the network architecture etc, it is important to understand the approach. I describe it briefly here, but more details are in our [CVPR2015 paper][4] and my [thesis][3].
