@@ -30,6 +30,7 @@ The network definition is in `model_defs/hypercolumn_test.prototxt`. The network
 3. The third input is the bounding boxes in the coordinates of the conv5 feature map, required for the spatial pyramid pooling. For VGG and Alexnet, this simply means the box coordinates divided by 16. The format of this blob is `[image_id xmin ymin xmax ymax]`.
 
 4. The final input is again a list of category ids.
+
 There is a lot of redundancy in these inputs, and currently `prepare_blobs.py` contains code to take in the image and detections as input and produce these blobs. This might be simplified in the future.
 
 The network architecture reflects the architecture shown in Figure 3.7 of my [thesis][3]. 
