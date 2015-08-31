@@ -4,9 +4,11 @@ import my_accumarray as accum
 import numpy as np
 
 
-sbddir = '/work5/bharath2/SBD_check/benchmark_RELEASE/dataset'
+sbddir = 'cache/benchmark_RELEASE/dataset' 
 
 def load_gt(name):
+  if not os.path.isdir(sbddir):
+    raise IOError('Dataset does not exist in {:s}. Please download SBD from http://www.cs.berkeley.edu/~bharath2/codes/SBD/download.html'.format(sbddir))
   filename = os.path.join(sbddir, 'cls', name+'.mat')
   output = loadmat(filename)
   filename = os.path.join(sbddir, 'inst', name+'.mat')
