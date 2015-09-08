@@ -11,7 +11,7 @@ layer {
   python_param {
     module: "hypercolumn_data_layer"
     layer: "HypercolumnDataLayer"
-    param_str: ''
+    param_str: '--proposalfile train_mcg_boxes.pkl --gtfile gttrain.pkl'
   }
 }
 layer {
